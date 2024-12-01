@@ -4,47 +4,57 @@
    </nav>
 
    <div class="container_buscar">
-        <input class="input" v-model="functionType" placeholder="Enter function type (e.g., SMA)" name="functionType" id="functionType">
-        <input class="input" v-model="ticker" placeholder="Digite o simbolo"  name="buscar" id="buscar">
-        <button type="submit" @click="fetchFinam">
-            Buscar acão
-        </button>
+        <form @submit.prevent="fetchFinam">
+            <input class="input" v-model="functionType" placeholder="Digite o tipo de função (e.g., SMA)"  name="functionType" id="functionType">
+            <input class="input" v-model="ticker" placeholder="Digite o simbolo" name="ticker" id="ticker">
+            <button type="submit">
+            Buscar ação
+            </button>
+        </form>
    </div>
    
    <div id="demo">
         
         <transition class="transitions" name="fade">
-            <div v-if="show">
-                <ul>
-                    <li v-for="item in finash" :key="item.date">{{ item.date }}: {{ item.value }}</li>
-                </ul>
-            </div>
+            <ChartComponent :chart-data="chartData" />
         </transition>
+       
     </div>
 
 
 </template>
 <script>
-import api from '../services/api.js'
-import { ref } from 'vue'
+/* import api from '../services/api.js' */
+import { ref, computed, onMounted } from 'vue'
+import ChartComponent from './ChartComponent.vue'
+
+
 
 
 export default {
     name: 'HomePage',
-    $el: '#demo',
-
+    components: {
+        ChartComponent
+    },
+   
     setup() {
-        const finance = ref([])
-        const ticker = ref('')
-        const show = ref(true)
+        const finance = ref('')
+      
+        /*
+        Este codigo que de fato faz a requisição para a API da Alpha Vantage
+        porem como a API é paga, não é possivel fazer a requisição sem a chave de acesso
+        
+        const functionType = ref('TIME_SERIES_MONTHLY_ADJUSTED')
+        const ticker = ref('IBM')
+        const show = ref(true) 
 
         const fetchFinam = async()=>{
             try{
                 const response = await api.get('',{
                     params: {
-                        function: 'SMA',
+                        function: functionType.value,
                         symbol: ticker.value,
-                        apikey: 'SUK9VPIQXGZWKPS2',
+                        apikey: '9RRFTAXAGK6XCRWC',
                         outputsize: 'full'
                     }
                 })
@@ -53,13 +63,46 @@ export default {
             }catch(error){
                 console.log(error)
             }
-        }
+        }*/
 
+        /* 
+        Tentiva de fazer a requisição ao um arquivo json na pasta public, porem o mesmo não funciona
+        Erros com a biblioteca Charts.js e Vue-chartjs
+        */
+        onMounted( async()=>{
+            try {
+                const response = await fetch('/response.json')
+                finance.value = await response.json()
+                console.log(finance.value)
+            } catch (error) {
+                console.error('Error loading JSON:', error)
+            }
+        })
+        const chartData = computed(() => {
+            if(!finance.value || Object.keys(finance.value).length === 0){
+                return {
+                    labels: [],
+                    datasets: []
+                }
+            }
+            const labels = Object.keys(finance.value)
+            const data = Object.values(finance.value).map(item => item['SMA'])
+
+            return {
+                labels,
+                datasets: [
+                    {
+                    label: 'SMA',
+                    backgroundColor: '#f87979',
+                    data
+                    }
+                ]
+            }
+        })
+        
         return {
             finance,
-            ticker,
-            show,
-            fetchFinam
+            chartData,
         }
     }
 
@@ -93,6 +136,7 @@ export default {
         justify-content: center;
         align-items: center;
         margin-top: 20px;
+        width: 100%;
     }
     #buscar{
         padding: 10px;
@@ -125,8 +169,12 @@ export default {
 
     }
     .input{
-        margin: 20px;
-        width: 50%;
+        height: 50px;
+        padding: 10px;
+        margin: 10px;
+        width: 100%;
+
+        border: #42b983 1px solid;
     }
     h1 {
         color: white;
